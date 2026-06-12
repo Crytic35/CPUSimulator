@@ -267,7 +267,7 @@ int main(int argc, char* argv[]) {
             cout << "\nTask " << task.id << " completed." << endl;
         }
     }
-
+    // OUTPUT
     cout << "Total CPU Cycles: " << cpuCycles << endl;
     cout << "Cache Latency Cycles: " << cache.totalLatency << endl;
     cout << "Overall Cycles: " << cpuCycles + cache.totalLatency << endl;
