@@ -173,7 +173,9 @@ vector<Task> loadTasks(const string& filename) {
         ss >> taskKeyword >> taskId >> burstKeyword >> burst;
 
         string memKeyword;
-        ss >> memKeyword;
+        if (!(ss >> memKeyword)) {
+            continue;
+        }
 
         vector<string> memBlocks;
         string block;
@@ -190,7 +192,7 @@ vector<Task> loadTasks(const string& filename) {
 
 int main(int argc, char* argv[]) {
 
-    string inputFile = "tasks.txt";
+    string inputFile = "input_task2.txt";
 
     if (argc > 1) {
         inputFile = argv[1];
