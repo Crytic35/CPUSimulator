@@ -7,6 +7,7 @@
 #include <string>
 using namespace std;
 
+// Process/task in the system.
 struct Task {
     string id;
     int burstTime;
@@ -22,6 +23,7 @@ struct Task {
           memoryIndex(0) {}
 };
 
+// Simulates 1 cache level (L1, L2, or L3).
 class CacheLevel {
 public:
     string name;
@@ -32,6 +34,7 @@ public:
     CacheLevel(string n, int c, int l)
         : name(n), capacity(c), latency(l) {}
 
+    // Checking whether the memory block exists in the cache or not.    
     bool contains(const string& block) {
         for (const auto& b : blocks) {
             if (b == block) return true;
@@ -39,6 +42,8 @@ public:
         return false;
     }
 
+    // FIFO replacement.
+    // Removes oldest block when cache is full.
     string insertFIFO(const string& block) {
         string evicted = "";
 
@@ -62,6 +67,7 @@ public:
     }
 };
 
+// Simulates CPU memory hierarchy.
 class CacheHierarchy {
 private:
     CacheLevel L1;
@@ -82,6 +88,7 @@ public:
     int accessBlock(const string& block) {
         cout << "Requesting: " << block << endl;
 
+        // Fastest cache level (L1) check.
         if (L1.contains(block)) {
             cout << "  L1 HIT (" << L1.latency << " cycles)" << endl;
             totalLatency += L1.latency;
@@ -90,6 +97,7 @@ public:
 
         cout << "  L1 MISS" << endl;
 
+        // Searching next cache level (L2) after L1 MISS.
         if (L2.contains(block)) {
             cout << "  L2 HIT (" << L2.latency << " cycles) -> Promote to L1" << endl;
 
@@ -103,7 +111,8 @@ public:
         }
 
         cout << "  L2 MISS" << endl;
-
+        
+        // Searching final cache level (L3) before RAM.
         if (L3.contains(block)) {
             cout << "  L3 HIT (" << L3.latency << " cycles) -> Promote to L1" << endl;
 
@@ -130,11 +139,16 @@ public:
         return 200;
     }
 
+    // Printing current contents of each cache level.
     void printState() {
         cout << "  L1: " << L1.state() << endl;
         cout << "  L2: " << L2.state() << endl;
         cout << "  L3: " << L3.state() << endl;
     }
+
+    /* Initialising cache contents to demonstrate hits and misses. (Completely optional btw)
+       I am intentionally putting some memory blocks into the cache before
+       the simulation begins soo that the output will contain both cache hits and cache misses. */
 
     void preloadExampleData() {
         L1.blocks.push_back("M2");
@@ -148,13 +162,14 @@ public:
     }
 };
 
-vector<Task> loadTasks(const string& filename) {
+// Reading tasks from the input file.
+vector<Task> loadTasks(const string& fileName) {
     vector<Task> tasks;
 
-    ifstream fin(filename);
+    ifstream fin(fileName);
 
     if (!fin.is_open()) {
-        cerr << "Failed to open file: " << filename << endl;
+        cerr << "Failed to open file: " << fileName << endl;
         return tasks;
     }
 
@@ -172,6 +187,7 @@ vector<Task> loadTasks(const string& filename) {
 
         ss >> taskKeyword >> taskId >> burstKeyword >> burst;
 
+        // Parsing the memory block list after MEM keyword.
         string memKeyword;
         if (!(ss >> memKeyword)) {
             continue;
@@ -190,13 +206,10 @@ vector<Task> loadTasks(const string& filename) {
     return tasks;
 }
 
-int main(int argc, char* argv[]) {
-
+int main() {
+    
+    // Given task file.
     string inputFile = "input_task2.txt";
-
-    if (argc > 1) {
-        inputFile = argv[1];
-    }
 
     vector<Task> tasks = loadTasks(inputFile);
 
@@ -205,8 +218,10 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    // Quantum time (or Time Slice).
     const int QUANTUM = 3;
 
+    //Round Robin Ready Queue (OS Scheduler).
     queue<int> readyQueue;
 
     for (int i = 0; i < (int)tasks.size(); i++) {
@@ -214,6 +229,8 @@ int main(int argc, char* argv[]) {
     }
 
     CacheHierarchy cache;
+
+    // Preloading cache contents to demonstrate hits and misses.
     cache.preloadExampleData();
 
     long long cpuCycles = 0;
@@ -224,23 +241,28 @@ int main(int argc, char* argv[]) {
     cout << "Scheduler: Round Robin (Quantum = 3)" << endl;
     cout << endl;
 
+    // MAIN LOOP. BEWARE.
     while (!readyQueue.empty()) {
 
+        // Here, the dispatcher selects the next task from the ready queue.
         int idx = readyQueue.front();
         readyQueue.pop();
 
         Task& task = tasks[idx];
 
+        // Determining how many cycles this task can run.
         int slice = min(QUANTUM, task.remainingTime);
 
         cout << "Dispatching Task " << task.id
              << " for " << slice
              << " cycle(s)" << endl;
 
+        // Executing for one time quantum.
         for (int i = 0; i < slice; i++) {
 
             cout << "\nCycle " << cycleNumber << " - Running: " << task.id << endl;
-
+            
+            // Generating memory request for current cycle.
             if (!task.memoryBlocks.empty()) {
 
                 string block =
@@ -258,10 +280,12 @@ int main(int argc, char* argv[]) {
             cpuCycles++;
             cycleNumber++;
 
+            // Stop if task has been completed.
             if (task.remainingTime == 0)
                 break;
         }
 
+        // Checking if quantum time is over or not.
         if (task.remainingTime > 0) {
             readyQueue.push(idx);
         } else {
@@ -269,7 +293,8 @@ int main(int argc, char* argv[]) {
             cout << "\nTask " << task.id << " completed." << endl;
         }
     }
-    // OUTPUT
+    // FINAL OUTPUT.
+    cout << "=== Final Results ===" << endl; // AI ahh heading.
     cout << "Total CPU Cycles: " << cpuCycles << endl;
     cout << "Cache Latency Cycles: " << cache.totalLatency << endl;
     cout << "Overall Cycles: " << cpuCycles + cache.totalLatency << endl;
